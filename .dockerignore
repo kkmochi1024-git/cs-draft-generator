@@ -1,0 +1,14 @@
+.env
+data/
+.steering/
+.git/
+.gitignore
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+docs/
+settings/
+.claude/
+CLAUDE.md
+*.md

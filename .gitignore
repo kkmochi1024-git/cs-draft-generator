@@ -1,0 +1,16 @@
+.env
+data/
+.steering/ignore/
+docs-ignore/
+.claude/review-criteria.md
+.claude/git-sync-policy.md
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.ruff_cache/
+.coverage
+.DS_Store

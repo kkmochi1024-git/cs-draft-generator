@@ -1,0 +1,15 @@
+services:
+  app:
+    build: .
+    stdin_open: true
+    tty: true
+    ports:
+      # PIIを扱うためlocalhostのみにバインド（LAN公開しない。D-004は単一ユーザー前提）
+      - "127.0.0.1:8501:8501"  # Streamlit WebUI（D-004）
+    volumes:
+      # data/ 全体をマウント: chroma_db の永続化 + CLI登録用の入力ファイル（.eml/PDF）受け渡し
+      - ./data:/app/data
+    env_file:
+      - .env
+    environment:
+      - OLLAMA_BASE_URL=http://host.rancher-desktop.internal:11434
