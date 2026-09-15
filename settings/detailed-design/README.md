@@ -202,8 +202,8 @@ CLIは `QueryService.ask()`（非ストリーミング）を使う点がWebUIと
 
 | テストファイル | 対象モジュール | 概要 |
 |---|---|---|
-| `tests/test_masking.py` | `masking/regex_masker.py`, `masking/service.py` | メール/電話/郵便番号の正規表現検出、`MaskingService.mask()`/`unmask()` の統合動作 |
-| `tests/test_ner_masker.py` | `masking/ner_masker.py` | GiNZAによる人名・地名検出。GiNZA未ロード環境（`_nlp is None`）では `pytest.mark.skipif` で全テストをスキップする |
+| `tests/test_masking.py` | `masking/regex_masker.py`, `masking/service.py` | メール/電話/郵便番号/住所の正規表現検出、`MaskingService.mask()`/`unmask()` の統合動作、NER地名の番地までの延長（`TestAddressMasking`。GiNZA非依存のスタブで検証） |
+| `tests/test_ner_masker.py` | `masking/ner_masker.py` | GiNZAによる人名・地名・郵便番号付き住所（`Postal_Address`）の検出。GiNZA未ロード環境（`_nlp is None`）では `pytest.mark.skipif` で全テストをスキップする |
 | `tests/test_rag.py` | `rag/index_service.py`, `rag/query_service.py` | `OllamaEmbeddings`/`ChatOllama`/`config` を `unittest.mock.patch` でモックし、外部接続なしで `RegisterResult`/`AnswerResult`/`StreamingAnswer` の生成を検証する統合テスト |
 | `tests/test_eml_reader.py` | `etl/eml_reader.py` | `tests/fixtures/*.eml`（inquiry/response/standalone）を用いた本文抽出・ヘッダー抽出の検証 |
 | `tests/test_pdf_reader.py` | `etl/pdf_reader.py`, `rag/index_service.py`（ページ範囲算出の純粋関数） | PyMuPDFでテスト用PDFを動的生成し、ページ単位抽出と `_orig_to_masked_pos`/`_page_range_str` を検証 |

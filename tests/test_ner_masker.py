@@ -1,6 +1,8 @@
 import pytest
 
 from src.masking.ner_masker import NerMasker
+from src.masking.regex_masker import RegexMasker
+from src.masking.service import MaskingService
 
 # GiNZAがロードできない環境ではテストをスキップ
 _masker = NerMasker()
@@ -33,6 +35,24 @@ class TestNerMasker:
         location_labels = {"Province", "City", "Country"}
         location_entities = [e for e in entities if e.label in location_labels]
         assert len(location_entities) >= 1
+
+    # 郵便番号の近くの住所（GiNZAはPostal_Addressラベルで返す）が検出されること
+    # （回帰テスト: 2026-09-15発見。Postal_AddressがTARGET_LABELS外で住所がマスク漏れしていた）
+    def test_detect_postal_address(self):
+        entities = self.masker.detect("〒100-0001 東京都千代田区1-1-1")
+        assert any("東京都千代田区" in e.original for e in entities)
+
+    # MaskingService経由で、〒付き住所が本文に残らず、トークン破損もなく往復復元できること
+    def test_mask_postal_address_end_to_end(self):
+        # MaskingService() はGiNZAを再読み込みしてメモリを圧迫するため、読み込み済みの _masker を使い回す
+        service = MaskingService.__new__(MaskingService)
+        service._regex = RegexMasker()
+        service._ner = self.masker
+        original = "山田太郎\n〒100-0001 東京都千代田区1-1-1"
+        result = service.mask(original)
+        assert "東京都千代田区" not in result.masked_text
+        assert "100-0001" not in result.masked_text
+        assert service.unmask(result.masked_text, result.mapping) == original
 
     # OrganizationラベルはTARGET_LABELSに含まれないため、検出結果に含まれないこと
     def test_ignore_organization(self):

@@ -164,3 +164,78 @@ class TestMaskingService:
         mapped = self.service._map_ner_to_original(text, [], ner_entities)
         assert [(e.start, e.end) for e in mapped] == [(0, 4), (7, 11)]
         assert [e.token for e in mapped] == ["[Person_1]", "[Person_2]"]
+
+
+class TestAddressMasking:
+    """住所の検出（正規表現 ADDRESS と、NERが検出した地名の番地までの延長）。
+    回帰テスト: 2026-09-15発見。郵便番号のない住所や番地がマスクされずに残っていた"""
+
+    def setup_method(self):
+        self.regex = RegexMasker()
+
+    @staticmethod
+    def _service_with(ner) -> MaskingService:
+        """GiNZAを読み込まずに、指定したNERで MaskingService を組み立てる。
+        テストごとに MaskingService() を作るとGiNZAを毎回読み込み、メモリ4GBのコンテナでOOMになるため"""
+        service = MaskingService.__new__(MaskingService)
+        service._regex = RegexMasker()
+        service._ner = ner
+        return service
+
+    # 都道府県名＋市区町村＋番地の住所を、表記ゆれを含めて番地まで丸ごと検出できること
+    def test_regex_detects_address_variants(self):
+        addresses = [
+            "東京都千代田区1-1-1",
+            "東京都千代田区丸の内1丁目1番1号",
+            "大阪府大阪市北区梅田2-4-9",
+            "神奈川県横浜市西区みなとみらい3-3-1",
+            "北海道札幌市中央区北1条西2丁目1番地",
+            "京都府京都市下京区東塩小路町７２１−１",
+            "埼玉県さいたま市浦和区高砂三丁目15番1号",
+        ]
+        for address in addresses:
+            entities = self.regex.detect(f"住所は{address}です")
+            assert [e.original for e in entities if e.label == "ADDRESS"] == [address], address
+
+    # 住所ではない数字（人数・バージョン・手順番号・電話番号等）を住所として検出しないこと
+    def test_regex_ignores_non_address(self):
+        texts = [
+            "東京都に住んでいます。",
+            "東京都の2024年度予算",
+            "大阪府で3-4名が参加",
+            "東京都内の市区町村で3-4件",
+            "CloudManagePro v2.1-3 をご利用ください",
+            "手順1-1-1を参照",
+            "東京都千代田区にある本社",
+        ]
+        for text in texts:
+            assert [e for e in self.regex.detect(text) if e.label == "ADDRESS"] == [], text
+
+    # 郵便番号・住所・建物名が並ぶ行で、郵便番号と住所（番地まで）がそれぞれマスクされること
+    def test_mask_address_with_zipcode(self):
+        service = self._service_with(_StubNer("該当なし"))
+        original = "〒530-0001 大阪府大阪市北区梅田2-4-9 ABCビル5F"
+        result = service.mask(original)
+        assert result.masked_text == "〒[ZIPCODE_1] [ADDRESS_1] ABCビル5F"
+        assert service.unmask(result.masked_text, result.mapping) == original
+
+    # NERが地名だけを検出した場合に、直後の番地まで範囲が延び、往復で復元できること
+    def test_extend_ner_city_to_house_number(self):
+        service = self._service_with(_StubNer("千代田区", label="City"))
+        original = "千代田区1-1-1にお越しください"
+        result = service.mask(original)
+        assert result.masked_text == "[City_1]にお越しください"
+        assert result.mapping["[City_1]"] == "千代田区1-1-1"
+        assert service.unmask(result.masked_text, result.mapping) == original
+
+    # 地名の後ろが番地でない数字（助詞を挟む人数など）の場合は延長しないこと
+    def test_no_extension_for_non_address_number(self):
+        service = self._service_with(_StubNer("港区", label="City"))
+        result = service.mask("港区に2-3社あります")
+        assert result.masked_text == "[City_1]に2-3社あります"
+
+    # 人名（住所系ラベル以外）は後ろに数字が続いても延長しないこと
+    def test_no_extension_for_person(self):
+        service = self._service_with(_StubNer("山田", label="Person"))
+        result = service.mask("山田1-2-3")
+        assert result.masked_text == "[Person_1]1-2-3"

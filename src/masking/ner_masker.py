@@ -5,7 +5,10 @@ from src.masking.models import Entity
 logger = logging.getLogger(__name__)
 
 # GiNZAは地名を Location ではなく Province/City/Country 等で返す
-TARGET_LABELS = {"Person", "Province", "City", "Country"}
+# 郵便番号の近くの住所は City ではなく Postal_Address で返すため、これも対象にする（未指定だと住所がマスク漏れする）
+TARGET_LABELS = {"Person", "Province", "City", "Country", "Postal_Address"}
+# 住所の一部を表すラベル。MaskingService がこれらの直後に続く番地までを検出範囲に含める
+ADDRESS_LABELS = {"Province", "City", "Postal_Address"}
 
 
 class NerMasker:

@@ -27,8 +27,8 @@
 | `unmask(text, mapping)` | `str, dict` | `str` | マスクトークンを元の値に復元 |
 
 **内部構成**:
-- RegexMasker: メールアドレス、電話番号、郵便番号を正規表現で検出
-- NerMasker: 人名、住所をGiNZA NERで検出
+- RegexMasker: メールアドレス、電話番号、郵便番号、住所（都道府県名＋市区町村＋番地が揃ったもの）を正規表現で検出
+- NerMasker: 人名、住所をGiNZA NERで検出。GiNZAが返す地名の直後に続く番地は、MaskingService が検出範囲に含める
 
 **エラーケース**:
 | ケース | 検出方法 | 対処 |
@@ -86,7 +86,7 @@
 | フィールド | 型 | 必須 | 説明 |
 |---|---|---|---|
 | original | str | Yes | 元の文字列 |
-| label | str | Yes | 種別（EMAIL / PHONE / ZIPCODE = 正規表現由来の大文字、Person / Location = GiNZA NER由来のPascalCase） |
+| label | str | Yes | 種別（EMAIL / PHONE / ZIPCODE / ADDRESS = 正規表現由来の大文字、Person / Province / City / Country / Postal_Address = GiNZA NER由来のPascalCase） |
 | token | str | Yes | 置換トークン（[EMAIL_1]等） |
 | start | int | Yes | 開始位置 |
 | end | int | Yes | 終了位置 |

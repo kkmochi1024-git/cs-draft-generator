@@ -1,6 +1,6 @@
 from src.masking.models import Entity, MaskingResult
-from src.masking.ner_masker import NerMasker
-from src.masking.regex_masker import RegexMasker
+from src.masking.ner_masker import ADDRESS_LABELS, NerMasker
+from src.masking.regex_masker import ADDRESS_CONTINUATION, RegexMasker
 
 
 class MaskingService:
@@ -24,6 +24,8 @@ class MaskingService:
         ner_entities = self._ner.detect(masked_text)
         # NERの検出位置はマスク済みテキスト上のものなので、元テキストの位置に変換する
         all_ner_on_original = self._map_ner_to_original(text, regex_entities, ner_entities)
+        # GiNZAは地名の後ろの番地（例: 「千代田区」の後ろの「1-1-1」）を含めないため、番地まで範囲を延ばす
+        all_ner_on_original = self._extend_address_entities(text, regex_entities, all_ner_on_original)
 
         all_entities = regex_entities + all_ner_on_original
         # 末尾から置換することで、前方の置換が後方の位置情報をずらす問題を回避
@@ -86,3 +88,29 @@ class MaskingService:
                 search_start = idx + 1
 
         return mapped
+
+    def _extend_address_entities(
+        self, original_text: str, regex_entities: list[Entity], ner_entities: list[Entity]
+    ) -> list[Entity]:
+        """住所系ラベル（ADDRESS_LABELS）のNERエンティティについて、直後に続く町名・番地を範囲に含める。
+        延長後の範囲が他のエンティティと重なる場合は延長しない（置換の衝突によるトークン破損を防ぐ）。"""
+        others = regex_entities + ner_entities
+        extended: list[Entity] = []
+
+        for ent in ner_entities:
+            match = ADDRESS_CONTINUATION.match(original_text, ent.end) if ent.label in ADDRESS_LABELS else None
+            if match:
+                new_end = match.end()
+                overlaps = any(o is not ent and o.start < new_end and ent.start < o.end for o in others)
+                if not overlaps:
+                    ent = Entity(
+                        original=original_text[ent.start : new_end],
+                        label=ent.label,
+                        token=ent.token,
+                        start=ent.start,
+                        end=new_end,
+                        source=ent.source,
+                    )
+            extended.append(ent)
+
+        return extended

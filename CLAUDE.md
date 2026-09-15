@@ -15,15 +15,15 @@ PIIを自動マスキングした上でLLM（ローカル/クラウド切替可�
 ## ドキュメント
 
 - 設計書・仕様書: [settings/INDEX.md](settings/INDEX.md)
-- 変更ログ: [docs/changelog/](docs/changelog/)
-- チャット履歴: [docs/chat-logs/](docs/chat-logs/)
+- 変更ログ: [docs-ignore/changelog/](docs-ignore/changelog/)（Git管理外。公開してよいと確認できたものだけ `docs/changelog/` へ移す）
+- チャット履歴: [docs-ignore/chat-logs/](docs-ignore/chat-logs/)（同上。`docs/chat-logs/` は移動済みの公開分）
 - コマンド・手順書: [docs/command/](docs/command/)
 
 ## 開発ルール
 
 - PIIを含む生データをGitにコミットしない
 - `.env` にAPIキー等を格納し、`.gitignore` に含める
-- `data/`、`.steering/ignore/` はGit管理外（機能開発のステアリングファイルは `.steering/` 直下に置きGit管理対象。機能と無関係な作業のステアリングのみ `ignore/` に置く）
+- `data/`、`docs-ignore/`、`.steering/ignore/` はGit管理外（機能開発のステアリングファイルは `.steering/` 直下に置きGit管理対象。機能と無関係な作業のステアリングのみ `ignore/` に置く）
 - コーディング規約・テスト方針の詳細は [settings/development-guidelines.md](settings/development-guidelines.md) を参照
 - テストデータ登録コマンドなど、繰り返し使う手順やコマンドは `docs/command/` にドキュメント化して残す
 
@@ -31,7 +31,7 @@ PIIを自動マスキングした上でLLM（ローカル/クラウド切替可�
 
 ```bash
 # Docker環境
-docker compose build
+docker compose build          # src/・tests/ を変更したら必ず再ビルド（マウントされない。docs/command/docker-rebuild.md）
 docker compose up -d          # WebUI が http://localhost:8501 で起動（デフォルトCMD）
 docker compose exec app python -m src.main mask "テスト"
 docker compose exec app python -m src.main register

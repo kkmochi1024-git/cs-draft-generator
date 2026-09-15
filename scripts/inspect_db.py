@@ -20,8 +20,10 @@ def cmd_list(client: chromadb.ClientAPI, args: argparse.Namespace) -> None:
     print(f"{'コレクション名':<25} {'ドキュメント数':>10}")
     print("-" * 40)
     for col in collections:
-        count = client.get_collection(col).count()
-        print(f"{col:<25} {count:>10}")
+        # chromadb 1.x は Collection オブジェクト、0.5 系は名前（str）を返すため両方に対応する
+        name = col if isinstance(col, str) else col.name
+        count = client.get_collection(name).count()
+        print(f"{name:<25} {count:>10}")
 
 
 def cmd_show(client: chromadb.ClientAPI, args: argparse.Namespace) -> None:

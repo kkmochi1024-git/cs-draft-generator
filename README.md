@@ -56,6 +56,8 @@ docker compose up -d    # WebUI が http://localhost:8501 で起動
 
 ポートは PII を扱うため **localhost のみにバインド**しています（LAN には公開されません）。
 
+> **`src/`・`tests/`・`pyproject.toml` を変更したら、`docker compose build` と `docker compose up -d` をやり直してください。** コードはイメージに組み込まれ、コンテナにはマウントされないため、再ビルドしないと変更が反映されません。手順と確認方法は [docs/command/docker-rebuild.md](docs/command/docker-rebuild.md) を参照。
+
 ## 使い方
 
 ### WebUI（推奨）
